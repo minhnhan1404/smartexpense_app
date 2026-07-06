@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'package:google_fonts/google_fonts.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/budgets_screen.dart';
 import 'screens/add_transaction_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/analytics_screen.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
@@ -23,7 +26,9 @@ class SmartExpenseApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4F46E5)),
         useMaterial3: true,
-        fontFamily: 'Roboto', 
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(
+          Theme.of(context).textTheme,
+        ),
       ),
       home: const AuthCheck(),
     );
@@ -80,46 +85,75 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const BudgetsScreen(),
-    const Scaffold(body: Center(child: Text('Analytics (Coming Soon)'))), // Placeholder cho cân đối
+    const AnalyticsScreen(),
     const ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Để nội dung tràn xuống dưới thanh điều hướng mờ
       body: _screens[_currentIndex],
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Khi bấm dấu +, mở giao diện Thêm Giao Dịch
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => const AddTransactionScreen(),
-          );
-        },
-        backgroundColor: const Color(0xFF4F46E5),
-        shape: const CircleBorder(),
-        elevation: 4,
-        child: const Icon(Icons.add, color: Colors.white, size: 32),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.white,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        elevation: 10,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home_rounded, 'Home', 0),
-              _buildNavItem(Icons.account_balance_wallet_rounded, 'Jars', 1),
-              const SizedBox(width: 48), // Khoảng trống cho FAB
-              _buildNavItem(Icons.bar_chart_rounded, 'Stats', 2),
-              _buildNavItem(Icons.person_rounded, 'Profile', 3),
-            ],
+      bottomNavigationBar: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: Container(
+            padding: const EdgeInsets.only(bottom: 24, top: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.92),
+              border: Border(top: BorderSide(color: const Color(0xFF6366F1).withOpacity(0.1))),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF4F46E5).withOpacity(0.07),
+                  blurRadius: 32,
+                  offset: const Offset(0, -8),
+                )
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildNavItem(Icons.home_rounded, 'Home', 0),
+                _buildNavItem(Icons.pie_chart_rounded, 'Budgets', 1),
+                
+                // Nút Thêm (FAB) nằm giữa
+                GestureDetector(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => const AddTransactionScreen(),
+                    );
+                  },
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    margin: const EdgeInsets.only(bottom: 4), // Đẩy lên xíu
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4F46E5).withOpacity(0.35),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        )
+                      ],
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 28),
+                  ),
+                ),
+                
+                _buildNavItem(Icons.bar_chart_rounded, 'Stats', 2),
+                _buildNavItem(Icons.person_rounded, 'Profile', 3),
+              ],
+            ),
           ),
         ),
       ),
@@ -127,29 +161,32 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildNavItem(IconData icon, String label, int index) {
-    final isSelected = _currentIndex == index;
-    final color = isSelected ? const Color(0xFF4F46E5) : Colors.grey.shade400;
+    final isActive = _currentIndex == index;
+    final color = isActive ? const Color(0xFF4F46E5) : const Color(0xFF94A3B8);
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 2),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 44,
+            height: 36,
+            decoration: BoxDecoration(
+              color: isActive ? const Color(0xFFEEF2FF) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
               color: color,
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 11,
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ],

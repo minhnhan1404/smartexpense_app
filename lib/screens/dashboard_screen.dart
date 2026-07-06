@@ -21,6 +21,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double totalBalance = 0.0;
   List<dynamic> categoriesChart = [];
   List<dynamic> recentTransactions = [];
+  List<dynamic> wallets = [];
 
   @override
   void initState() {
@@ -74,6 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (data['status'] == 'success') {
           setState(() {
             totalBalance = double.tryParse(data['data']['total_balance'].toString()) ?? 0.0;
+            wallets = data['data']['wallets'] ?? [];
             categoriesChart = data['data']['categories_chart'] ?? [];
             recentTransactions = data['data']['recent_transactions'] ?? [];
             isLoading = false;
@@ -108,17 +110,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Icons.category;
   }
 
+  // Hàm tạo Blob trang trí
+  Widget _buildBlob(double top, double right, double width, double height, double opacity) {
+    return Positioned(
+      top: top,
+      right: right,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(opacity),
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5)))
-            : errorMessage.isNotEmpty
-                ? _buildErrorScreen()
-                : _buildDashboardContent(),
-      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5)))
+          : errorMessage.isNotEmpty
+              ? _buildErrorScreen()
+              : _buildDashboardContent(),
     );
   }
 
@@ -149,165 +165,246 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildDashboardContent() {
     return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
-            Center(
-              child: Column(
-                children: [
-                  Text(
-                    'Total Unallocated Balance',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    formatVND(totalBalance), // Dữ liệu thật đã format
-                    style: const TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E293B),
-                      letterSpacing: -1,
-                    ),
-                  ),
-                ],
+      padding: const EdgeInsets.only(bottom: 100), // Khoảng trống cho bottom nav
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header (Gradient)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 20,
+              bottom: 32,
+              left: 24,
+              right: 24,
+            ),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF4F46E5), Color(0xFF6366F1), Color(0xFF818CF8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
               ),
             ),
-            const SizedBox(height: 32),
-
-            // Card Biểu Đồ
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4F46E5).withOpacity(0.06),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Spending by Category',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _buildBlob(-40, -40, 160, 160, 0.08),
+                _buildBlob(100, 250, 100, 100, 0.06), // left blob
+                Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Good morning,',
+                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Alex Johnson 👋',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEEF2FF),
-                          borderRadius: BorderRadius.circular(20),
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.person, color: Colors.white),
                         ),
-                        child: const Text(
-                          'June',
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Column(
+                      children: [
+                        const Text(
+                          'TOTAL UNALLOCATED BALANCE',
                           style: TextStyle(
-                            color: Color(0xFF4F46E5),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            color: Colors.white60,
+                            fontSize: 12,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  
-                  // Biểu đồ thật vẽ từ dữ liệu SQL
-                  categoriesChart.isEmpty 
-                  ? const SizedBox(
-                      height: 180, 
-                      child: Center(child: Text("Chưa có chi tiêu nào"))
-                    )
-                  : SizedBox(
-                    height: 180,
-                    width: 180,
-                    child: CustomPaint(
-                      painter: DonutChartPainter(categoriesChart),
+                        const SizedBox(height: 8),
+                        Text(
+                          formatVND(totalBalance),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 38,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.arrow_upward_rounded, color: Color(0xFF34D399), size: 14),
+                            const SizedBox(width: 4),
+                            const Text(
+                              '+8.2% from last month',
+                              style: TextStyle(
+                                color: Color(0xFF34D399),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 30),
-
-                  // Chú thích (Legend) sinh ra từ SQL
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 12,
-                    alignment: WrapAlignment.center,
-                    children: categoriesChart.map((cat) {
-                      return _buildLegendItem(
-                        _hexToColor(cat['color']), 
-                        cat['name'], 
-                        formatVND(double.tryParse(cat['spent'].toString()) ?? 0)
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Recent Transactions',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    // Cập nhật lại dữ liệu thủ công
-                    fetchDashboardData();
-                  },
-                  child: const Text(
-                    'Làm mới',
-                    style: TextStyle(
-                      color: Color(0xFF4F46E5),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+          ),
+          
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Spending by Category Card (Glassmorphism)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.1)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF4F46E5).withOpacity(0.06),
+                        blurRadius: 24,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Spending by Category',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF2FF),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'June',
+                              style: TextStyle(
+                                color: Color(0xFF4F46E5),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      categoriesChart.isEmpty 
+                      ? const SizedBox(
+                          height: 150, 
+                          child: Center(child: Text("Chưa có chi tiêu nào"))
+                        )
+                      : SizedBox(
+                        height: 150,
+                        width: 150,
+                        child: CustomPaint(
+                          painter: DonutChartPainter(categoriesChart),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-            // Danh sách giao dịch thật từ SQL
-            recentTransactions.isEmpty
-            ? const Center(child: Text("Không có giao dịch nào"))
-            : Column(
-                children: recentTransactions.map((tx) {
-                  bool isIncome = tx['type'] == 'income';
-                  return _buildTransactionItem(
-                    tx['title'],
-                    tx['date'],
-                    '${isIncome ? '+' : '-'} ${formatVND(double.tryParse(tx['amount'].toString()) ?? 0)}',
-                    _getIconForCategory(tx['title']),
-                    _hexToColor(tx['icon_color']),
-                    isIncome,
-                  );
-                }).toList(),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.start,
+                        children: categoriesChart.map((cat) {
+                          return _buildLegendItem(
+                            _hexToColor(cat['color']), 
+                            cat['name'], 
+                            formatVND(double.tryParse(cat['spent'].toString()) ?? 0)
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Recent Transactions Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Recent Transactions',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: fetchDashboardData,
+                      child: const Text(
+                        'See all',
+                        style: TextStyle(
+                          color: Color(0xFF4F46E5),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Transactions List
+                recentTransactions.isEmpty
+                ? const Center(child: Text("Không có giao dịch nào"))
+                : Column(
+                    children: recentTransactions.map((tx) {
+                      bool isIncome = tx['type'] == 'income';
+                      return _buildTransactionItem(
+                        tx['title'],
+                        tx['date'],
+                        '${isIncome ? '+' : ''}${formatVND(double.tryParse(tx['amount'].toString()) ?? 0)}',
+                        _getIconForCategory(tx['title']),
+                        _hexToColor(tx['icon_color']),
+                        isIncome,
+                      );
+                    }).toList(),
+                ),
+              ],
             ),
-            
-            const SizedBox(height: 80),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -321,15 +418,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           height: 8,
           decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+          style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 6),
         Text(
           amount,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B)),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: Color(0xFF0F172A)),
         ),
       ],
     );
@@ -337,30 +434,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildTransactionItem(String title, String subtitle, String amount, IconData icon, Color iconColor, bool isIncome) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.08)),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(16),
+              color: iconColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: iconColor, size: 24),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,16 +467,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     color: Color(0xFF94A3B8),
                   ),
                 ),
@@ -387,9 +486,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             amount,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isIncome ? const Color(0xFF10B981) : const Color(0xFF1E293B),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isIncome ? const Color(0xFF10B981) : const Color(0xFF0F172A),
             ),
           ),
         ],
