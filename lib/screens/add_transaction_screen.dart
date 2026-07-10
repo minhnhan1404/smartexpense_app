@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:smartexpense_app/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
@@ -28,13 +29,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     fetchData();
   }
 
-  String getApiUrl(String endpoint) {
-    if (kIsWeb) return 'http://127.0.0.1/SmartExpense/public/api/$endpoint';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2/SmartExpense/public/api/$endpoint';
-    } catch (_) {}
-    return 'http://127.0.0.1/SmartExpense/public/api/$endpoint';
-  }
 
   Future<void> fetchData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -42,11 +36,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     
     try {
       // Get Wallets
-      final walletRes = await http.get(Uri.parse(getApiUrl('wallets')), headers: {
+      final walletRes = await http.get(Uri.parse(ApiConfig.getUrl('wallets')), headers: {
         'Accept': 'application/json', 'Authorization': 'Bearer $token',
       });
       // Get Categories (Jars)
-      final categoryRes = await http.get(Uri.parse(getApiUrl('categories')), headers: {
+      final categoryRes = await http.get(Uri.parse(ApiConfig.getUrl('categories')), headers: {
         'Accept': 'application/json', 'Authorization': 'Bearer $token',
       });
 
@@ -437,7 +431,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         
                         try {
                           final res = await http.post(
-                            Uri.parse(getApiUrl('transactions')),
+                            Uri.parse(ApiConfig.getUrl('transactions')),
                             headers: {
                               'Accept': 'application/json',
                               'Authorization': 'Bearer $token',

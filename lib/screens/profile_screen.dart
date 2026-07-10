@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:smartexpense_app/api_config.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform, File;
@@ -20,13 +21,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? avatarUrl;
   bool _isLoading = false;
 
-  String getApiUrl(String path) {
-    if (kIsWeb) return 'http://127.0.0.1/SmartExpense/public/api/$path';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2/SmartExpense/public/api/$path';
-    } catch (e) {}
-    return 'http://127.0.0.1/SmartExpense/public/api/$path';
-  }
 
   @override
   void initState() {
@@ -46,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse(getApiUrl('user')),
+        Uri.parse(ApiConfig.getUrl('user')),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
@@ -58,7 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         String? fixedAvatarUrl = data['avatar'];
         if (fixedAvatarUrl != null) {
           if (!fixedAvatarUrl.startsWith('http')) {
-            String baseUrl = getApiUrl('').replaceAll('/api/', '/');
+            String baseUrl = ApiConfig.getUrl('').replaceAll('/api/', '/');
             fixedAvatarUrl = baseUrl + fixedAvatarUrl;
           }
           if (!kIsWeb && Platform.isAndroid) {
@@ -94,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
 
-      var request = http.MultipartRequest('POST', Uri.parse(getApiUrl('user/avatar')));
+      var request = http.MultipartRequest('POST', Uri.parse(ApiConfig.getUrl('user/avatar')));
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = 'application/json';
 
@@ -113,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         String? fixedAvatarUrl = data['user']['avatar'];
         if (fixedAvatarUrl != null) {
           if (!fixedAvatarUrl.startsWith('http')) {
-            String baseUrl = getApiUrl('').replaceAll('/api/', '/');
+            String baseUrl = ApiConfig.getUrl('').replaceAll('/api/', '/');
             fixedAvatarUrl = baseUrl + fixedAvatarUrl;
           }
           if (!kIsWeb && Platform.isAndroid) {

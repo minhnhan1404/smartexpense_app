@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // Để dùng kIsWeb
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:smartexpense_app/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
@@ -22,13 +23,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   String _errorMessage = '';
 
-  String getApiUrl() {
-    if (kIsWeb) return 'http://127.0.0.1/SmartExpense/public/api/auth/register';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2/SmartExpense/public/api/auth/register';
-    } catch (e) {}
-    return 'http://127.0.0.1/SmartExpense/public/api/auth/register';
-  }
 
   Future<void> _register() async {
     setState(() {
@@ -50,7 +44,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse(getApiUrl()),
+        Uri.parse(ApiConfig.getUrl('auth/register')),
         headers: {'Accept': 'application/json'},
         body: {'name': name, 'email': email, 'password': password},
       );

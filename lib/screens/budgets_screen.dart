@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:smartexpense_app/api_config.dart';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
@@ -27,13 +28,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     _fetchJars();
   }
 
-  String getApiUrl(String path) {
-    if (kIsWeb) return 'http://127.0.0.1/SmartExpense/public/api/$path';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2/SmartExpense/public/api/$path';
-    } catch (e) {}
-    return 'http://127.0.0.1/SmartExpense/public/api/$path';
-  }
 
   Future<void> _fetchJars() async {
     setState(() => isLoading = true);
@@ -42,13 +36,13 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       final token = prefs.getString('auth_token');
 
       // Lấy danh sách Jars
-      final res = await http.get(Uri.parse(getApiUrl('jars')), headers: {
+      final res = await http.get(Uri.parse(ApiConfig.getUrl('jars')), headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       });
 
       // Lấy unallocated balance từ Dashboard hoặc User API
-      final resUser = await http.get(Uri.parse(getApiUrl('user')), headers: {
+      final resUser = await http.get(Uri.parse(ApiConfig.getUrl('user')), headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       });
@@ -172,7 +166,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       final token = prefs.getString('auth_token');
 
       final response = await http.post(
-        Uri.parse(getApiUrl('jars/allocate')),
+        Uri.parse(ApiConfig.getUrl('jars/allocate')),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',

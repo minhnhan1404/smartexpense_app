@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // Để dùng kIsWeb
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:smartexpense_app/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
@@ -21,13 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String _errorMessage = '';
 
-  String getApiUrl() {
-    if (kIsWeb) return 'http://127.0.0.1/SmartExpense/public/api/auth/login';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2/SmartExpense/public/api/auth/login';
-    } catch (e) {}
-    return 'http://127.0.0.1/SmartExpense/public/api/auth/login';
-  }
 
   Future<void> _login() async {
     setState(() {
@@ -40,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse(getApiUrl()),
+        Uri.parse(ApiConfig.getUrl('auth/login')),
         headers: {'Accept': 'application/json'},
         body: {'email': email, 'password': password},
       );

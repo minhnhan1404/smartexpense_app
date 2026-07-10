@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // Để dùng kIsWeb
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:smartexpense_app/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
@@ -22,13 +23,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   String _errorMessage = '';
   String _successMessage = '';
 
-  String getApiUrl() {
-    if (kIsWeb) return 'http://127.0.0.1/SmartExpense/public/api/auth/verify-code';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2/SmartExpense/public/api/auth/verify-code';
-    } catch (e) {}
-    return 'http://127.0.0.1/SmartExpense/public/api/auth/verify-code';
-  }
 
   Future<void> _verify() async {
     setState(() {
@@ -49,7 +43,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse(getApiUrl()),
+        Uri.parse(ApiConfig.getUrl('auth/verify-code')),
         headers: {'Accept': 'application/json'},
         body: {'email': widget.email, 'code': code},
       );

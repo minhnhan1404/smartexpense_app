@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart'; // Để dùng kIsWeb
 import 'dart:math';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:smartexpense_app/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
@@ -30,22 +31,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Cấu hình địa chỉ IP máy chủ (Tùy theo thiết bị bạn dùng để test)
-  String getApiUrl() {
-    // Nếu chạy trên trình duyệt Chrome (Web)
-    if (kIsWeb) {
-      return 'http://127.0.0.1/SmartExpense/public/api/dashboard/app';
-    }
-    // Nếu chạy trên Máy ảo Android (Emulator)
-    try {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2/SmartExpense/public/api/dashboard/app';
-      }
-    } catch (e) {
-      // Ignored for web
-    }
-    // Mặc định
-    return 'http://127.0.0.1/SmartExpense/public/api/dashboard/app';
-  }
 
   // Hàm định dạng tiền Việt Nam (VD: 3.000.000 đ)
   String formatVND(double amount) {
@@ -63,7 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final token = prefs.getString('auth_token');
 
       final response = await http.get(
-        Uri.parse(getApiUrl()),
+        Uri.parse(ApiConfig.getUrl('dashboard/app')),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',

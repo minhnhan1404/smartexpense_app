@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:smartexpense_app/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
@@ -28,13 +29,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     fetchStatistics();
   }
 
-  String getApiUrl() {
-    if (kIsWeb) return 'http://127.0.0.1/SmartExpense/public/api/statistics';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2/SmartExpense/public/api/statistics';
-    } catch (_) {}
-    return 'http://127.0.0.1/SmartExpense/public/api/statistics';
-  }
 
   Future<void> fetchStatistics() async {
     setState(() {
@@ -47,7 +41,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       final token = prefs.getString('auth_token');
 
       final response = await http.get(
-        Uri.parse(getApiUrl()),
+        Uri.parse(ApiConfig.getUrl('statistics')),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
