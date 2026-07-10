@@ -54,10 +54,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        
+        String? fixedAvatarUrl = data['avatar'];
+        if (fixedAvatarUrl != null) {
+          if (!fixedAvatarUrl.startsWith('http')) {
+            String baseUrl = getApiUrl('').replaceAll('/api/', '/');
+            fixedAvatarUrl = baseUrl + fixedAvatarUrl;
+          }
+          if (!kIsWeb && Platform.isAndroid) {
+            fixedAvatarUrl = fixedAvatarUrl.replaceAll('127.0.0.1', '10.0.2.2');
+            fixedAvatarUrl = fixedAvatarUrl.replaceAll('localhost', '10.0.2.2');
+          }
+        }
+
         setState(() {
           userName = data['name'];
           userEmail = data['email'];
-          avatarUrl = data['avatar'];
+          avatarUrl = fixedAvatarUrl;
         });
         await prefs.setString('user_name', data['name']);
         await prefs.setString('user_email', data['email']);
@@ -96,8 +109,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        
+        String? fixedAvatarUrl = data['user']['avatar'];
+        if (fixedAvatarUrl != null) {
+          if (!fixedAvatarUrl.startsWith('http')) {
+            String baseUrl = getApiUrl('').replaceAll('/api/', '/');
+            fixedAvatarUrl = baseUrl + fixedAvatarUrl;
+          }
+          if (!kIsWeb && Platform.isAndroid) {
+            fixedAvatarUrl = fixedAvatarUrl.replaceAll('127.0.0.1', '10.0.2.2');
+            fixedAvatarUrl = fixedAvatarUrl.replaceAll('localhost', '10.0.2.2');
+          }
+        }
+
         setState(() {
-          avatarUrl = data['user']['avatar'];
+          avatarUrl = fixedAvatarUrl;
         });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cập nhật ảnh đại diện thành công')));
       } else {
@@ -229,9 +255,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 40),
 
               // Settings List
-              _buildSettingItem(Icons.person_outline, 'Account Settings', () {}),
-              _buildSettingItem(Icons.color_lens_outlined, 'Theme Selection', () {}),
-              _buildSettingItem(Icons.file_download_outlined, 'Export Data', () {}),
+              _buildSettingItem(Icons.person_outline, 'Account Settings', () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Account Settings'),
+                    content: const Text('Tính năng thay đổi thông tin cá nhân đang được phát triển.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng'))
+                    ],
+                  ),
+                );
+              }),
+              _buildSettingItem(Icons.color_lens_outlined, 'Theme Selection', () {
+                showModalBottomSheet(
+                  context: context,
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                  builder: (context) => Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Chọn giao diện', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 16),
+                        ListTile(
+                          leading: const Icon(Icons.light_mode, color: Colors.orange),
+                          title: const Text('Chế độ Sáng (Light)'),
+                          trailing: const Icon(Icons.check, color: Colors.green),
+                          onTap: () => Navigator.pop(context),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.dark_mode, color: Colors.black87),
+                          title: const Text('Chế độ Tối (Dark)'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng Dark mode đang được hoàn thiện')));
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+              _buildSettingItem(Icons.file_download_outlined, 'Export Data', () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dữ liệu của bạn đang được chuẩn bị xuất ra file Excel...')));
+              }),
               
               const SizedBox(height: 24),
               // Log Out
