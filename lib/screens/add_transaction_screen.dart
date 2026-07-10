@@ -111,7 +111,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
       child: Column(
         children: [
-          // Nút gạt ngang ở trên cùng (Handle)
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Nút gạt ngang ở trên cùng (Handle)
           Container(
             margin: const EdgeInsets.only(top: 12, bottom: 20),
             height: 5,
@@ -368,7 +372,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               }
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
 
           // Bàn phím Numpad
           Container(

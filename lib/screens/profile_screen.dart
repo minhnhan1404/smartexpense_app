@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform, File;
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -12,6 +17,16 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String userName = 'Loading...';
   String userEmail = 'Loading...';
+  String? avatarUrl;
+  bool _isLoading = false;
+
+  String getApiUrl(String path) {
+    if (kIsWeb) return 'http://127.0.0.1/SmartExpense/public/api/$path';
+    try {
+      if (Platform.isAndroid) return 'http://10.0.2.2/SmartExpense/public/api/$path';
+    } catch (e) {}
+    return 'http://127.0.0.1/SmartExpense/public/api/$path';
+  }
 
   @override
   void initState() {
@@ -25,6 +40,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
       userName = prefs.getString('user_name') ?? 'Guest User';
       userEmail = prefs.getString('user_email') ?? 'guest@example.com';
     });
+
+    final token = prefs.getString('auth_token');
+    if (token == null) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse(getApiUrl('user')),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          userName = data['name'];
+          userEmail = data['email'];
+          avatarUrl = data['avatar'];
+        });
+        await prefs.setString('user_name', data['name']);
+        await prefs.setString('user_email', data['email']);
+      }
+    } catch (e) {
+      print('Error loading user: $e');
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+
+    if (image == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      var request = http.MultipartRequest('POST', Uri.parse(getApiUrl('user/avatar')));
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      if (kIsWeb) {
+        request.files.add(http.MultipartFile.fromBytes('avatar', await image.readAsBytes(), filename: image.name));
+      } else {
+        request.files.add(await http.MultipartFile.fromPath('avatar', image.path));
+      }
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          avatarUrl = data['user']['avatar'];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cập nhật ảnh đại diện thành công')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi cập nhật ảnh đại diện')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể kết nối tới máy chủ')));
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _logout() async {
@@ -83,23 +168,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const SizedBox(height: 20),
               // Avatar
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4F46E5).withOpacity(0.15),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+              GestureDetector(
+                onTap: _isLoading ? null : _pickAndUploadAvatar,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF2FF),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF4F46E5).withOpacity(0.15),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: _isLoading 
+                          ? const Center(child: CircularProgressIndicator()) 
+                          : avatarUrl != null 
+                            ? Image.network(avatarUrl!, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.person, size: 60, color: Color(0xFF4F46E5)))
+                            : const Center(child: Icon(Icons.person, size: 60, color: Color(0xFF4F46E5))),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF4F46E5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                     ),
                   ],
-                ),
-                child: const Center(
-                  child: Icon(Icons.person, size: 50, color: Color(0xFF4F46E5)),
                 ),
               ),
               const SizedBox(height: 16),
