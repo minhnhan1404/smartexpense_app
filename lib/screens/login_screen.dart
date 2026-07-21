@@ -8,6 +8,7 @@ import 'dart:io' show Platform;
 
 import '../main.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -157,7 +158,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           fillColor: const Color(0xFFF8FAFC),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 8),
+                      // Nút Quên mật khẩu
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                            );
+                          },
+                          child: const Text('Quên mật khẩu?', style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       
                       // Nút Đăng Nhập
                       SizedBox(
