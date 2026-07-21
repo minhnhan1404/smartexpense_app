@@ -10,7 +10,15 @@ import 'screens/analytics_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 
-void main() {
+final ValueNotifier<Color> appThemeColor = ValueNotifier<Color>(const Color(0xFF0F172A));
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final savedColor = prefs.getInt('theme_color');
+  if (savedColor != null) {
+    appThemeColor.value = Color(savedColor);
+  }
   runApp(const SmartExpenseApp());
 }
 
@@ -19,18 +27,28 @@ class SmartExpenseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SmartExpense',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4F46E5)),
-        useMaterial3: true,
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          Theme.of(context).textTheme,
-        ),
-      ),
-      home: const AuthCheck(),
+    return ValueListenableBuilder<Color>(
+      valueListenable: appThemeColor,
+      builder: (context, color, child) {
+        return MaterialApp(
+          title: 'SmartExpense',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            scaffoldBackgroundColor: const Color(0xFFF1F5F9), // Màu nền xám nhạt hiện đại
+            colorScheme: ColorScheme.fromSeed(seedColor: color, primary: color),
+            useMaterial3: true,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white,
+              elevation: 0.5,
+              iconTheme: IconThemeData(color: Color(0xFF0F172A)),
+            ),
+            textTheme: GoogleFonts.plusJakartaSansTextTheme(
+              Theme.of(context).textTheme,
+            ),
+          ),
+          home: const AuthCheck(),
+        );
+      },
     );
   }
 }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:smartexpense_app/api_config.dart';
@@ -27,7 +25,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     super.initState();
     _fetchJars();
   }
-
 
   Future<void> _fetchJars() async {
     setState(() => isLoading = true);
@@ -56,18 +53,20 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           calcAllocated += double.tryParse(jar['balance'].toString()) ?? 0.0;
         }
 
-        setState(() {
-          jars = data;
-          unallocatedBalance = double.tryParse(userData['unallocated_balance']?.toString() ?? '0') ?? 0.0;
-          allocated = calcAllocated;
-          totalBudget = unallocatedBalance + allocated;
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            jars = data;
+            unallocatedBalance = double.tryParse(userData['unallocated_balance']?.toString() ?? '0') ?? 0.0;
+            allocated = calcAllocated;
+            totalBudget = unallocatedBalance + allocated;
+            isLoading = false;
+          });
+        }
       } else {
-        setState(() => isLoading = false);
+        if (mounted) setState(() => isLoading = false);
       }
     } catch (e) {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -76,7 +75,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 
   Color _hexToColor(String code) {
-    if (code.isEmpty) return const Color(0xFF4F46E5);
+    if (code.isEmpty) return const Color(0xFF0F172A);
     return Color(int.parse(code.substring(1, 7), radix: 16) + 0xFF000000);
   }
 
@@ -101,18 +100,32 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Text('Phân bổ ngân sách', style: TextStyle(fontWeight: FontWeight.bold)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: const Text('Phân bổ ngân sách', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Số dư chưa phân bổ: ${formatVND(unallocatedBalance)} đ', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Chưa phân bổ', style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+                        Text('${formatVND(unallocatedBalance)} đ', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 15)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
                     value: selectedJarId,
                     decoration: InputDecoration(
-                      labelText: 'Chọn Hũ/Danh mục',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      labelText: 'Chọn Danh mục / Hũ',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
                     items: jars.map((jar) {
                       return DropdownMenuItem<String>(
@@ -129,8 +142,9 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     controller: amountController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'Số tiền',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      labelText: 'Số tiền (VNĐ)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
                   ),
                 ],
@@ -147,10 +161,12 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     await _allocateFunds(selectedJarId!, double.parse(amountController.text));
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F46E5),
+                    backgroundColor: const Color(0xFF0F172A),
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   ),
-                  child: const Text('Phân bổ', style: TextStyle(color: Colors.white)),
+                  child: const Text('Phân bổ', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -178,142 +194,100 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Phân bổ thành công!')));
-        _fetchJars();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Phân bổ thành công!')));
+          _fetchJars();
+        }
       } else {
         final data = json.decode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? 'Lỗi phân bổ')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? 'Lỗi phân bổ')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi kết nối máy chủ')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi kết nối máy chủ')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF1F5F9), // Màu xám nhạt hiện đại
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        title: const Text(
+          'Ngân sách',
+          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Color(0xFF0F172A)),
+            onPressed: _fetchJars,
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.only(top: 24.0, left: 24, right: 24, bottom: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Tổng quan ngân sách
+            Container(
+              margin: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 8)),
+                ],
+              ),
+              child: Column(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'My Jars',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Manage your budget allocations',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                      ),
+                  Row(
+                    children: [
+                      _buildSummaryItem('Tổng ngân sách', formatVND(totalBudget), const Color(0xFF0F172A)),
+                      Container(width: 1, height: 40, color: const Color(0xFFE2E8F0)),
+                      _buildSummaryItem('Chưa phân bổ', formatVND(unallocatedBalance), const Color(0xFF10B981)),
                     ],
                   ),
-                  GestureDetector(
-                    onTap: _fetchJars,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4F46E5),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4)),
-                        ],
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _showAllocateDialog,
+                      icon: const Icon(Icons.add, size: 20),
+                      label: const Text('Phân bổ tiền', style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F172A), // Navy Blue
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: const Icon(Icons.refresh, color: Colors.white, size: 18),
                     ),
                   ),
                 ],
               ),
             ),
             
-            // Allocate Funds Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Container(
-                width: double.infinity,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.3), blurRadius: 24, offset: const Offset(0, 8)),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: _showAllocateDialog,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.add, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Allocate Funds',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Total Budget Summary
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.1)),
-                boxShadow: [
-                  BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4)),
-                ],
-              ),
-              child: Row(
-                children: [
-                  _buildSummaryItem('Total Budget', formatVND(totalBudget), const Color(0xFF0F172A)),
-                  Container(width: 1, height: 36, color: const Color(0xFF6366F1).withOpacity(0.15)),
-                  _buildSummaryItem('Allocated', formatVND(allocated), const Color(0xFF4F46E5)),
-                  Container(width: 1, height: 36, color: const Color(0xFF6366F1).withOpacity(0.15)),
-                  _buildSummaryItem('Remaining', formatVND(unallocatedBalance), const Color(0xFF10B981)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Jars Grid
+            // Lưới Ngân Sách
             Expanded(
               child: isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5)))
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF0F172A)))
                   : jars.isEmpty
-                      ? const Center(child: Text('Không có hũ nào. Hãy tạo thêm ở web.'))
-                      : GridView.count(
+                      ? const Center(child: Text('Chưa có danh mục nào.', style: TextStyle(color: Colors.grey)))
+                      : GridView.builder(
                           padding: const EdgeInsets.only(left: 24, right: 24, bottom: 100),
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
-                          childAspectRatio: 0.85,
-                          children: jars.map((jar) {
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.82,
+                          ),
+                          itemCount: jars.length,
+                          itemBuilder: (context, index) {
+                            var jar = jars[index];
                             double balance = double.tryParse(jar['balance'].toString()) ?? 0;
                             double limit = double.tryParse(jar['budget_limit'].toString()) ?? 0;
-                            if (limit == 0) limit = balance > 0 ? balance * 1.5 : 1000; // Fake limit for UI if 0
+                            if (limit == 0) limit = balance > 0 ? balance * 1.5 : 1000000;
                             
                             double progress = limit > 0 ? balance / limit : 0;
                             if (progress > 1.0) progress = 1.0;
@@ -325,10 +299,9 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                               formatVND(limit),
                               progress,
                               color,
-                              color.withOpacity(0.1),
                               _getIconForCategory(jar['name']),
                             );
-                          }).toList(),
+                          },
                         ),
             ),
           ],
@@ -340,28 +313,31 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   Widget _buildSummaryItem(String label, String value, Color color) {
     return Expanded(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text('$value đ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color, letterSpacing: -0.5)),
+          Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          Text('$value ₫', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
         ],
       ),
     );
   }
 
-  Widget _buildJarCard(String title, String spent, String limit, double progress, Color iconColor, Color lightBg, IconData icon) {
+  Widget _buildJarCard(String title, String spent, String limit, double progress, Color iconColor, IconData icon) {
     bool isOverBudget = progress >= 0.9;
+    bool isWarning = progress >= 0.7 && progress < 0.9;
     int pct = (progress * 100).round();
+
+    Color progressColor = isOverBudget ? const Color(0xFFEF4444) : (isWarning ? const Color(0xFFF59E0B) : const Color(0xFF10B981));
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.1)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: const Color(0xFF0F172A).withOpacity(0.04),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -377,23 +353,23 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: lightBg,
-                  borderRadius: BorderRadius.circular(13),
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: iconColor, size: 20),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isOverBudget ? const Color(0xFFFEF2F2) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(20),
+                  color: progressColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '$pct%',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: isOverBudget ? const Color(0xFFEF4444) : const Color(0xFF64748B),
+                    color: progressColor,
                   ),
                 ),
               ),
@@ -405,16 +381,16 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
               color: Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
-            '$spent đ',
+            '$spent ₫',
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w800,
               color: Color(0xFF0F172A),
               letterSpacing: -0.5,
@@ -422,13 +398,13 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           ),
           const SizedBox(height: 2),
           Text(
-            'of $limit đ',
+            '/ $limit ₫',
             style: const TextStyle(
-              fontSize: 10,
+              fontSize: 11,
               color: Color(0xFF94A3B8),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           // Progress Bar
           Container(
             height: 6,
@@ -442,7 +418,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                   flex: pct > 0 ? pct : 0,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isOverBudget ? const Color(0xFFEF4444) : iconColor,
+                      color: progressColor,
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),

@@ -7,6 +7,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform, File;
 import 'login_screen.dart';
+import 'edit_profile_screen.dart';
+import 'theme_picker_screen.dart';
+import 'package:csv/csv.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,7 +25,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String userEmail = 'Loading...';
   String? avatarUrl;
   bool _isLoading = false;
-
 
   @override
   void initState() {
@@ -61,16 +65,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
         }
 
-        setState(() {
-          userName = data['name'];
-          userEmail = data['email'];
-          avatarUrl = fixedAvatarUrl;
-        });
-        await prefs.setString('user_name', data['name']);
-        await prefs.setString('user_email', data['email']);
+        if (mounted) {
+          setState(() {
+            userName = data['name'];
+            userEmail = data['email'];
+            avatarUrl = fixedAvatarUrl;
+          });
+          await prefs.setString('user_name', data['name']);
+          await prefs.setString('user_email', data['email']);
+        }
       }
     } catch (e) {
-      print('Error loading user: $e');
+      if (kDebugMode) print('Error loading user: $e');
     }
   }
 
@@ -116,48 +122,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
         }
 
-        setState(() {
-          avatarUrl = fixedAvatarUrl;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cập nhật ảnh đại diện thành công')));
+        if (mounted) {
+          setState(() {
+            avatarUrl = fixedAvatarUrl;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cập nhật ảnh đại diện thành công', style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF10B981)));
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi cập nhật ảnh đại diện')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi cập nhật ảnh đại diện', style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFFEF4444)));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể kết nối tới máy chủ')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể kết nối tới máy chủ', style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFFEF4444)));
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _exportData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      final response = await http.get(
+        Uri.parse(ApiConfig.getUrl('transactions/export')),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> transactions = json.decode(response.body);
+        
+        List<List<dynamic>> csvData = [
+          ['Ngày', 'Mô tả', 'Danh mục', 'Loại', 'Số tiền (VNĐ)', 'Ví']
+        ];
+
+        for (var tx in transactions) {
+          csvData.add([
+            tx['date'],
+            tx['description'] ?? tx['title'] ?? '',
+            tx['category']?['name'] ?? '',
+            tx['category']?['type'] == 'expense' ? 'Chi tiêu' : 'Thu nhập',
+            tx['amount'],
+            tx['wallet']?['name'] ?? ''
+          ]);
+        }
+
+        String csv = const ListToCsvConverter().convert(csvData);
+        final String dir = (await getApplicationDocumentsDirectory()).path;
+        final String path = '$dir/smartexpense_export.csv';
+        final File file = File(path);
+        await file.writeAsString(csv);
+
+        if (mounted) {
+          Share.shareXFiles([XFile(path)], text: 'Dữ liệu thu chi SmartExpense');
+        }
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi xuất dữ liệu'), backgroundColor: Color(0xFFEF4444)));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể xuất dữ liệu lúc này'), backgroundColor: Color(0xFFEF4444)));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _logout() async {
-    // Hiển thị hộp thoại xác nhận
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF0F172A))),
+        content: const Text('Bạn có chắc chắn muốn đăng xuất không?', style: TextStyle(color: Color(0xFF475569))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text('Hủy', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Log Out', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            ),
+            child: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
 
     if (confirm == true && mounted) {
-      // Xóa toàn bộ dữ liệu trong bộ nhớ
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
-      // Chuyển hướng về màn hình Đăng Nhập
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -170,23 +241,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF1F5F9), // Màu xám nhạt hiện đại
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
         title: const Text(
-          'Profile',
-          style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.bold),
+          'Tài khoản',
+          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        centerTitle: false,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               // Avatar
               GestureDetector(
                 onTap: _isLoading ? null : _pickAndUploadAvatar,
@@ -197,107 +269,112 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEF2FF),
+                        color: Colors.white,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 4),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF4F46E5).withOpacity(0.15),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                            color: const Color(0xFF0F172A).withOpacity(0.08),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
                       child: ClipOval(
                         child: _isLoading 
-                          ? const Center(child: CircularProgressIndicator()) 
+                          ? const Center(child: CircularProgressIndicator(color: Color(0xFF0F172A))) 
                           : avatarUrl != null 
-                            ? Image.network(avatarUrl!, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.person, size: 60, color: Color(0xFF4F46E5)))
-                            : const Center(child: Icon(Icons.person, size: 60, color: Color(0xFF4F46E5))),
+                            ? Image.network(avatarUrl!, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.person, size: 60, color: Color(0xFF94A3B8)))
+                            : const Center(child: Icon(Icons.person, size: 60, color: Color(0xFF94A3B8))),
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF4F46E5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
                         shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               
               // Name & Email
               Text(
                 userName,
                 style: const TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
+                  color: Color(0xFF0F172A),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 userEmail,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: Colors.grey.shade500,
+                  color: Color(0xFF64748B),
                 ),
               ),
               const SizedBox(height: 40),
 
-              // Settings List
-              _buildSettingItem(Icons.person_outline, 'Account Settings', () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Account Settings'),
-                    content: const Text('Tính năng thay đổi thông tin cá nhân đang được phát triển.'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng'))
-                    ],
-                  ),
-                );
-              }),
-              _buildSettingItem(Icons.color_lens_outlined, 'Theme Selection', () {
-                showModalBottomSheet(
-                  context: context,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-                  builder: (context) => Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Chọn giao diện', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 16),
-                        ListTile(
-                          leading: const Icon(Icons.light_mode, color: Colors.orange),
-                          title: const Text('Chế độ Sáng (Light)'),
-                          trailing: const Icon(Icons.check, color: Colors.green),
-                          onTap: () => Navigator.pop(context),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.dark_mode, color: Colors.black87),
-                          title: const Text('Chế độ Tối (Dark)'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng Dark mode đang được hoàn thiện')));
-                          },
-                        ),
-                      ],
+              // Settings List (Grouped in a Card)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0F172A).withOpacity(0.03),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
-                  ),
-                );
-              }),
-              _buildSettingItem(Icons.file_download_outlined, 'Export Data', () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dữ liệu của bạn đang được chuẩn bị xuất ra file Excel...')));
-              }),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _buildSettingItem(Icons.person_outline, 'Thông tin cá nhân', () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => EditProfileScreen(initialName: userName)),
+                      );
+                      if (result == true) {
+                        _loadUserData();
+                      }
+                    }),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+                    _buildSettingItem(Icons.color_lens_outlined, 'Giao diện (Theme)', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ThemePickerScreen()),
+                      );
+                    }),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+                    _buildSettingItem(Icons.cloud_download_outlined, 'Xuất dữ liệu (Export)', _exportData),
+                  ],
+                ),
+              ),
               
               const SizedBox(height: 24),
-              // Log Out
-              _buildSettingItem(Icons.logout, 'Log Out', _logout, isDestructive: true),
+              // Log Out (Separate Card)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0F172A).withOpacity(0.03),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: _buildSettingItem(Icons.logout, 'Đăng xuất', _logout, isDestructive: true),
+              ),
+              const SizedBox(height: 100), // Bottom padding for navbar
             ],
           ),
         ),
@@ -306,41 +383,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSettingItem(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
-    final color = isDestructive ? const Color(0xFFEF4444) : const Color(0xFF1E293B);
+    final color = isDestructive ? const Color(0xFFEF4444) : const Color(0xFF0F172A);
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: isDestructive ? color.withOpacity(0.1) : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
-        ),
-        trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isDestructive ? color.withOpacity(0.1) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }
