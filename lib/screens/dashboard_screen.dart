@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:smartexpense_app/screens/add_transaction_screen.dart' as smartexpense_add;
+import 'package:smartexpense_app/screens/momo_payment_screen.dart' as smartexpense_momo;
+import 'package:smartexpense_app/screens/vnpay_payment_screen.dart' as smartexpense_vnpay;
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -270,6 +272,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                   ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
+                  const SizedBox(height: 24),
+                  // Quick Actions
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildQuickAction(
+                        icon: Icons.account_balance_wallet, 
+                        label: 'VNPay', 
+                        color: const Color(0xFF005BAA),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const smartexpense_vnpay.VNPayPaymentScreen()),
+                          ).then((_) => fetchDashboardData());
+                        }
+                      ),
+                      _buildQuickAction(
+                        icon: Icons.account_balance, 
+                        label: 'Chuyển khoản', 
+                        color: const Color(0xFF3B82F6),
+                        onTap: () {}
+                      ),
+                      _buildQuickAction(
+                        icon: Icons.history, 
+                        label: 'Lịch sử', 
+                        color: const Color(0xFFF59E0B),
+                        onTap: () {}
+                      ),
+                    ],
+                  ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0),
                 ],
               ),
             ).animate().fadeIn(duration: 500.ms),
@@ -454,6 +486,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             amount,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAction({required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
       ),
