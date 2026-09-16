@@ -71,7 +71,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 
   String formatVND(double amount) {
-    return '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'\\B(?=(\\d{3})+(?!\\d))'), (match) => '.')}';
+    return '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.')}';
   }
 
   Color _hexToColor(String code) {
@@ -435,3 +435,4 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     );
   }
 }
+

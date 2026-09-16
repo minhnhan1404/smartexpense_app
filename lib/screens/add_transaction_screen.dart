@@ -81,7 +81,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   String formatVND(String amountStr) {
     if (amountStr.isEmpty) return '0 đ';
     double val = double.tryParse(amountStr) ?? 0;
-    return '${val.toStringAsFixed(0).replaceAllMapped(RegExp(r'\\B(?=(\\d{3})+(?!\\d))'), (match) => '.')} đ';
+    return '${val.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.')} đ';
   }
 
   @override
@@ -517,3 +517,4 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 }
+

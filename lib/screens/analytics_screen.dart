@@ -88,7 +88,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   String formatVND(double amount) {
-    return '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'\\B(?=(\\d{3})+(?!\\d))'), (match) => '.')} ₫';
+    return '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.')} ₫';
   }
 
   Color _hexToColor(String code) {
@@ -342,3 +342,4 @@ class _Badge extends StatelessWidget {
     );
   }
 }
+

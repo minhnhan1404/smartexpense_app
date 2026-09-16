@@ -35,7 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String formatVND(double amount) {
-    return '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'\\B(?=(\\d{3})+(?!\\d))'), (match) => '.')} ₫';
+    return '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.')} ₫';
   }
 
   Future<void> fetchDashboardData() async {
@@ -622,3 +622,4 @@ class DonutChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
+
